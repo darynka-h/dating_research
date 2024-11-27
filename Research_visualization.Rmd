@@ -1,0 +1,144 @@
+---
+title: "ok Cupid research"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+data <- read.csv("okcupid_profiles 4.csv")
+```
+
+## Willingness of Offspring Comparison
+
+```{r}
+teo_data <- data %>%
+  mutate(
+    religion_category = case_when(
+      grepl("agnosticism|atheism|not too serious", religion, ignore.case = TRUE) ~ "non-religious",
+      grepl("christianity|judaism|islam|serious", religion, ignore.case = TRUE) ~ "religious",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+filtered_data <- teo_data %>%
+  filter(offspring %in% c("doesn't have kids, but wants them", "doesn't want kids"))
+
+summary <- filtered_data %>%
+  group_by(religion_category) %>%
+  summarize(
+    total_count = n(),
+    wants_kids_count = sum(offspring == "doesn't have kids, but wants them"),
+    wants_kids_percentage = (wants_kids_count / total_count) * 100
+  )
+
+
+print(summary)
+
+
+ggplot(summary, aes(x = religion_category, y = wants_kids_percentage, fill = religion_category)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Percentage of people who want kids by religion category",
+    x = "Religion Category",
+    y = "Percentage (%)"
+  ) +
+  theme_minimal()
+
+```
+
+## Body Type Comparison
+
+```{r}
+
+data$body_type <- ifelse(is.na(data$body_type), "unknown", data$body_type)
+data$diet <- ifelse(is.na(data$diet), "unknown", data$diet)
+
+veg_data <- data %>%
+  mutate(
+    diet_category = case_when(
+      grepl("vegetarian|vegan", diet, ignore.case = TRUE) ~ "Vegetarian",
+      TRUE ~ "Non-Vegetarian"
+    )
+  )
+
+body_type_summary <- veg_data %>%
+  group_by(diet_category, body_type) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(diet_category) %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+ggplot(body_type_summary, aes(x = body_type, y = percentage, fill = diet_category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(
+    title = "Percentage Distribution of Body Types Among Vegetarians and Non-Vegetarians",
+    x = "Body Type",
+    y = "Percentage",
+    fill = "Diet Category"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Income Comparison by Gender
+
+```{r}
+data_filtered <- data %>%
+  select(sex, income) %>%
+  filter(income > 0)
+
+summary(data_filtered)
+```
+
+```{r}
+ggplot(data_filtered, aes(x = sex, y = income, fill = sex)) +
+  geom_boxplot() +
+  scale_y_continuous(
+    trans = "pseudo_log",
+    breaks = c(0, 1000, 5000, 10000, 50000, 100000, 500000, 1000000)
+  ) +
+  labs(
+    title = "Income Distribution by Gender",
+    x = "Gender",
+    y = "Income (Pseudo-Log Scale)"
+  ) +
+  theme_minimal()
+```
+
+##  Age Standard Deviation
+
+```{r}
+
+mean_age <- mean(data$age, na.rm = TRUE)
+hist(data$age,
+     main = "Age Distribution",
+     xlab = "Age",
+     ylab = "Frequency",
+     col = "gold",
+     border = "black",
+     breaks = 65)
+
+abline(v = mean_age, 
+       col = "maroon",
+       lwd = 2,
+       lty = 2)
+
+legend("topright", 
+       legend = paste("Mean"), 
+       col = "maroon", 
+       lty = 2, 
+       lwd = 2)
+
+```
+
+```{r}
+variance_age <- var(data$age, na.rm = TRUE)
+sd_age <- sd(data$age, na.rm = TRUE)
+
+variance_age
+sd_age
+```
